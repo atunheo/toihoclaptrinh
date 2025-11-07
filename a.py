@@ -13,7 +13,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # 🧩 Thay bằng URL Web App bạn vừa deploy
-API_URL = "https://script.google.com/macros/s/AKfycbx_abc123XYZxyz/exec"
+API_URL = "https://script.google.com/macros/s/AKfycbx72N-OAU5ABpu9CF7sZMEZd3L4ypafwYJm1yOU-Cls0zYV3bxixqmbAGY0f9Wrwyk/exec"
 
 # ==== HIỂN THỊ HTML + JS ====
 with open("a.html", "r", encoding="utf-8") as f:
