@@ -18,23 +18,26 @@ st.markdown("""
 # ==============================
 # 🔐 KẾT NỐI GOOGLE SHEETS
 # ==============================
+# Đường dẫn đến file credentials.json của bạn
+SERVICE_ACCOUNT_FILE = "credentials.json"  # 👈 đặt file này trong cùng thư mục với a.py
+
 # Scope cho phép đọc + ghi dữ liệu vào Google Sheets
 SHEET_SCOPE = ["https://www.googleapis.com/auth/spreadsheets"]
 
-# Lấy credentials từ Streamlit Secrets (đã dán file JSON vào [google])
-creds = service_account.Credentials.from_service_account_info(
-    st.secrets["google"], scopes=SHEET_SCOPE
+# Đọc credentials từ file JSON
+creds = service_account.Credentials.from_service_account_file(
+    SERVICE_ACCOUNT_FILE, scopes=SHEET_SCOPE
 )
 client = gspread.authorize(creds)
 
-# 👉 Lấy danh sách tất cả các file Sheets mà service account có quyền
+# 👉 Lấy danh sách tất cả các Google Sheets mà service account có quyền
 sheets_list = client.openall()
 
 if not sheets_list:
     st.error("❌ Không tìm thấy file Google Sheet nào mà service account có quyền truy cập.\n\n➡️ Hãy chia sẻ Google Sheet với email trong service account (ví dụ: dinhuy@vongquay-may.iam.gserviceaccount.com)")
     st.stop()
 
-# Chọn file đầu tiên (hoặc chọn tên file cụ thể nếu bạn muốn)
+# Lấy sheet đầu tiên (hoặc thay bằng tên cụ thể nếu bạn muốn)
 sheet = sheets_list[0].sheet1
 SHEET_ID = sheet.spreadsheet.id
 
