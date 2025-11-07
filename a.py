@@ -3,6 +3,7 @@ import gspread
 from google.oauth2 import service_account
 import datetime
 import json
+st.write("🔑 Các khóa hiện có trong secrets:", list(st.secrets.keys()))
 
 st.set_page_config(page_title="Vòng Quay May Mắn", page_icon="🎡", layout="wide")
 
