@@ -2,6 +2,7 @@ import streamlit as st
 import random
 import math
 import pandas as pd
+import matplotlib.pyplot as plt
 from io import BytesIO
 
 st.set_page_config(page_title="Vòng Quay May Mắn", page_icon="🎡", layout="centered")
@@ -11,6 +12,8 @@ if "prizes" not in st.session_state:
     st.session_state.prizes = []
 if "history" not in st.session_state:
     st.session_state.history = []
+if "rotation" not in st.session_state:
+    st.session_state.rotation = 0  # Góc quay hiện tại (rad)
 
 st.title("🎡 Vòng Quay May Mắn")
 
@@ -40,10 +43,48 @@ with st.expander("🎁 Quản lý phần thưởng"):
             st.session_state.prizes = [p for p in st.session_state.prizes if p["name"] != remove]
             st.success("Đã xóa!")
 
+# ===== Hàm vẽ vòng quay =====
+def draw_wheel(prizes, rotation=0):
+    fig, ax = plt.subplots(figsize=(5, 5), subplot_kw={'projection': 'polar'})
+    ax.set_theta_direction(-1)
+    ax.set_theta_offset(math.pi / 2.0)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_facecolor("#111")
+
+    if not prizes:
+        ax.text(0.5, 0.5, "Chưa có phần thưởng", ha='center', va='center', color='white', fontsize=16, transform=ax.transAxes)
+        return fig
+
+    total = len(prizes)
+    arc = 2 * math.pi / total
+
+    for i, prize in enumerate(prizes):
+        start = i * arc + rotation
+        end = start + arc
+        ax.bar(
+            x=start + arc / 2,
+            height=1,
+            width=arc,
+            color=prize["color"],
+            edgecolor="white",
+            linewidth=2,
+            align="center"
+        )
+        ax.text(start + arc / 2, 0.7, prize["name"], color="white", ha="center", va="center", rotation=0, fontsize=10)
+
+    # Con trỏ ở trên
+    ax.plot([math.pi / 2, math.pi / 2], [0, 1.05], color="red", linewidth=4)
+    return fig
+
+# ===== Hiển thị vòng quay =====
+st.subheader("🌀 Vòng quay")
+fig = draw_wheel(st.session_state.prizes, st.session_state.rotation)
+st.pyplot(fig)
+
 # ===== Quay vòng =====
 if st.session_state.prizes:
     if st.button("🎯 QUAY"):
-        # Lọc phần thưởng còn hàng
         available = [p for p in st.session_state.prizes if p["quantity"] > 0]
         if not available:
             st.warning("Đã hết phần thưởng!")
@@ -54,7 +95,7 @@ if st.session_state.prizes:
                 weighted += [p] * p["weight"]
             prize = random.choice(weighted)
 
-            # Trừ số lượng
+            # Giảm số lượng
             for p in st.session_state.prizes:
                 if p["name"] == prize["name"]:
                     p["quantity"] -= 1
@@ -65,8 +106,20 @@ if st.session_state.prizes:
                 "prize": prize["name"]
             })
 
+            # Cập nhật góc quay (random 5–10 vòng)
+            idx = st.session_state.prizes.index(prize)
+            total = len(st.session_state.prizes)
+            arc = 2 * math.pi / total
+            random_offset = random.uniform(0.1, 0.9) * arc
+            target_angle = idx * arc + random_offset
+            total_spin = random.randint(5, 10) * 2 * math.pi
+            st.session_state.rotation += total_spin - target_angle  # để trỏ vào phần thưởng
+
             st.success(f"🎉 Chúc mừng! Bạn trúng **{prize['name']}**!")
 
+            # Vẽ lại vòng quay sau khi quay
+            fig = draw_wheel(st.session_state.prizes, st.session_state.rotation)
+            st.pyplot(fig)
 else:
     st.info("Hãy thêm phần thưởng trước khi quay.")
 
