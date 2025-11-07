@@ -12,7 +12,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==== Kết nối Google Sheets ====
-SHEET_ID = "YOUR_SPREADSHEET_ID"  # 👈 thay bằng ID thật
+SHEET_ID = "1FSRN3RIT5mqt1oQc57VOdqqaWzi0_A6fOwDSAavKwpI"  # 👈 thay bằng ID thật
 SHEET_SCOPE = ["https://www.googleapis.com/auth/spreadsheets"]
 
 creds = service_account.Credentials.from_service_account_file("credentials.json", scopes=SHEET_SCOPE)
