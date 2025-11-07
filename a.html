@@ -575,7 +575,28 @@
             }
 
         });
+        // Gửi kết quả quay ra ngoài (cho Streamlit)
+function notifyStreamlit(prizeName) {
+    if (window.parent) {
+        window.parent.postMessage({ type: "SPIN_RESULT", prize: prizeName }, "*");
+    }
+}
+
+// Trong đoạn xử lý sau khi quay trúng (ở setTimeout sau khi xác định phần thưởng)
+setTimeout(() => {
+    ...
+    prizeDisplay.textContent = `Trúng: ${winningPrize.name}!`;
+    document.getElementById('winPrizeName').textContent = winningPrize.name;
+    winModal.classList.remove('hidden');
+    winModal.querySelector('.modal-content').classList.replace('scale-95', 'scale-100');
+
+    // Gửi dữ liệu ra Streamlit
+    notifyStreamlit(winningPrize.name);
+
+}, 5100);
+
     </script>
 
 </body>
+
 </html>
