@@ -4,48 +4,38 @@ from google.oauth2 import service_account
 import datetime
 import json
 
-# ==============================
-# 🎡 CẤU HÌNH TRANG
-# ==============================
 st.set_page_config(page_title="Vòng Quay May Mắn", page_icon="🎡", layout="wide")
 
 st.markdown("""
     <h1 style='text-align:center; color:#FFD700;'>
-        🎡 Vòng Quay May Mắn (Ghi Google Sheets)
+        🎡 Vòng Quay May Mắn (Streamlit Cloud)
     </h1>
 """, unsafe_allow_html=True)
 
-# ==============================
-# 🔐 KẾT NỐI GOOGLE SHEETS
-# ==============================
-SERVICE_ACCOUNT_FILE = "credentials.json"
+# ==== Kết nối Google Sheets qua st.secrets ====
 SHEET_SCOPE = ["https://www.googleapis.com/auth/spreadsheets"]
 
-# Kết nối với service account
-creds = service_account.Credentials.from_service_account_file(
-    SERVICE_ACCOUNT_FILE, scopes=SHEET_SCOPE
+creds = service_account.Credentials.from_service_account_info(
+    st.secrets["google"], scopes=SHEET_SCOPE
 )
 client = gspread.authorize(creds)
 
-# 🧾 Lấy danh sách các Google Sheet mà service account có quyền
+# Lấy sheet đầu tiên
 sheets = client.openall()
 if not sheets:
     st.error("⚠️ Không tìm thấy Google Sheet nào mà service account có quyền.\n\n➡️ Hãy chia sẻ ít nhất 1 sheet với email trong service account.")
     st.stop()
 
 sheet = sheets[0].sheet1
-st.success(f"✅ Đang kết nối với sheet: **{sheet.title}**")
+st.success(f"✅ Đang ghi vào sheet: **{sheet.title}**")
 
-# ==============================
-# 💫 HIỂN THỊ HTML + JS VÒNG QUAY
-# ==============================
+# ==== HTML + JS vòng quay ====
 with open("a.html", "r", encoding="utf-8") as f:
     html = f.read()
 
 st.components.v1.html(
     html + """
     <script>
-        // Lắng nghe kết quả quay từ HTML (JS gửi về)
         window.addEventListener("message", (event) => {
             if (event.data && event.data.type === "SPIN_RESULT") {
                 const prize = event.data.prize;
@@ -64,9 +54,7 @@ st.components.v1.html(
     scrolling=True,
 )
 
-# ==============================
-# 🧾 NHẬN DỮ LIỆU POST TỪ JS & GHI VÀO SHEET
-# ==============================
+# ==== Ghi kết quả vào Sheet ====
 from streamlit.runtime.scriptrunner import get_script_run_ctx
 
 ctx = get_script_run_ctx()
