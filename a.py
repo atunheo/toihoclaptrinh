@@ -4,6 +4,9 @@ from google.oauth2 import service_account
 import datetime
 import json
 
+# ==============================
+# 🎡 CẤU HÌNH TRANG
+# ==============================
 st.set_page_config(page_title="Vòng Quay May Mắn", page_icon="🎡", layout="wide")
 
 st.markdown("""
@@ -12,19 +15,34 @@ st.markdown("""
     </h1>
 """, unsafe_allow_html=True)
 
-# ==== Kết nối Google Sheets ====
-SHEET_ID = "1FSRN3RIT5mqt1oQc57VOdqqaWzi0_A6fOwDSAavKwpI"  # 👈 thay bằng ID thật
+# ==============================
+# 🔐 KẾT NỐI GOOGLE SHEETS
+# ==============================
+# Scope cho phép đọc + ghi dữ liệu vào Google Sheets
 SHEET_SCOPE = ["https://www.googleapis.com/auth/spreadsheets"]
 
-# ⚠️ Dùng st.secrets thay vì file credentials.json
+# Lấy credentials từ Streamlit Secrets (đã dán file JSON vào [google])
 creds = service_account.Credentials.from_service_account_info(
-    st.secrets["google"],  # lấy từ Streamlit Secrets
-    scopes=SHEET_SCOPE
+    st.secrets["google"], scopes=SHEET_SCOPE
 )
 client = gspread.authorize(creds)
-sheet = client.open_by_key(SHEET_ID).sheet1
 
-# ==== Component HTML + JS ====
+# 👉 Lấy danh sách tất cả các file Sheets mà service account có quyền
+sheets_list = client.openall()
+
+if not sheets_list:
+    st.error("❌ Không tìm thấy file Google Sheet nào mà service account có quyền truy cập.\n\n➡️ Hãy chia sẻ Google Sheet với email trong service account (ví dụ: dinhuy@vongquay-may.iam.gserviceaccount.com)")
+    st.stop()
+
+# Chọn file đầu tiên (hoặc chọn tên file cụ thể nếu bạn muốn)
+sheet = sheets_list[0].sheet1
+SHEET_ID = sheet.spreadsheet.id
+
+st.info(f"📄 Đang kết nối với Google Sheet: **{sheet.title}** (ID: `{SHEET_ID}`)")
+
+# ==============================
+# 💫 HIỂN THỊ HTML + JS VÒNG QUAY
+# ==============================
 with open("a.html", "r", encoding="utf-8") as f:
     html = f.read()
 
@@ -50,7 +68,9 @@ st.components.v1.html(
     scrolling=True,
 )
 
-# ==== Xử lý dữ liệu POST (khi JS gửi kết quả) ====
+# ==============================
+# 🧾 NHẬN DỮ LIỆU POST TỪ JS & LƯU VÀO SHEET
+# ==============================
 from streamlit.runtime.scriptrunner import get_script_run_ctx
 
 ctx = get_script_run_ctx()
