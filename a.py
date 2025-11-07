@@ -2,6 +2,7 @@ import streamlit as st
 import gspread
 from google.oauth2 import service_account
 import datetime
+import json
 
 st.set_page_config(page_title="Vòng Quay May Mắn", page_icon="🎡", layout="wide")
 
@@ -15,7 +16,11 @@ st.markdown("""
 SHEET_ID = "1FSRN3RIT5mqt1oQc57VOdqqaWzi0_A6fOwDSAavKwpI"  # 👈 thay bằng ID thật
 SHEET_SCOPE = ["https://www.googleapis.com/auth/spreadsheets"]
 
-creds = service_account.Credentials.from_service_account_file("credentials.json", scopes=SHEET_SCOPE)
+# ⚠️ Dùng st.secrets thay vì file credentials.json
+creds = service_account.Credentials.from_service_account_info(
+    st.secrets["google"],  # lấy từ Streamlit Secrets
+    scopes=SHEET_SCOPE
+)
 client = gspread.authorize(creds)
 sheet = client.open_by_key(SHEET_ID).sheet1
 
@@ -46,21 +51,15 @@ st.components.v1.html(
 )
 
 # ==== Xử lý dữ liệu POST (khi JS gửi kết quả) ====
-import json
 from streamlit.runtime.scriptrunner import get_script_run_ctx
-from streamlit.web.server.websocket_headers import _get_websocket_headers
-from streamlit.web.server import server_util
-
-# Dùng query params để nhận JSON (tạm thời, demo local)
-try:
-    import streamlit.web.server.server as server
-except ImportError:
-    import streamlit.web.server as server
 
 ctx = get_script_run_ctx()
 if ctx and hasattr(ctx, "request_body") and ctx.request_body:
-    data = json.loads(ctx.request_body)
-    prize_name = data.get("prize", "Không rõ")
-    time_str = data.get("time", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-    sheet.append_row([time_str, prize_name])
-    st.toast(f"🎉 Đã lưu kết quả: {prize_name}")
+    try:
+        data = json.loads(ctx.request_body)
+        prize_name = data.get("prize", "Không rõ")
+        time_str = data.get("time", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        sheet.append_row([time_str, prize_name])
+        st.toast(f"🎉 Đã lưu kết quả: {prize_name}")
+    except Exception as e:
+        st.error(f"Lỗi khi ghi dữ liệu: {e}")
