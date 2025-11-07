@@ -5,38 +5,37 @@ import datetime
 import json
 
 # ==============================
-# ⚙️ CẤU HÌNH TRANG (PHẢI ĐẶT Ở ĐÂY)
+# ⚙️ CẤU HÌNH TRANG
 # ==============================
 st.set_page_config(page_title="Vòng Quay May Mắn", page_icon="🎡", layout="wide")
 
-# ==============================
-# 🎡 TIÊU ĐỀ GIAO DIỆN
-# ==============================
 st.markdown("""
     <h1 style='text-align:center; color:#FFD700;'>
-        🎡 Vòng Quay May Mắn (Ghi Google Sheets)
+        🎡 Vòng Quay May Mắn (Google Sheets - Local Credential)
     </h1>
 """, unsafe_allow_html=True)
 
 # ==============================
-# 🔐 KẾT NỐI GOOGLE SHEETS (Streamlit Cloud)
+# 🔐 KẾT NỐI GOOGLE SHEETS
 # ==============================
 SHEET_SCOPE = ["https://www.googleapis.com/auth/spreadsheets"]
+SERVICE_ACCOUNT_FILE = "credentials.json"  # 👈 Đọc trực tiếp từ file
 
 try:
-    creds = service_account.Credentials.from_service_account_info(
-        st.secrets["google"], scopes=SHEET_SCOPE
+    creds = service_account.Credentials.from_service_account_file(
+        SERVICE_ACCOUNT_FILE, scopes=SHEET_SCOPE
     )
     client = gspread.authorize(creds)
 except Exception as e:
-    st.error(f"❌ Lỗi khi tải thông tin xác thực từ st.secrets: {e}")
+    st.error(f"❌ Lỗi khi tải file credentials.json: {e}")
     st.stop()
 
-# Lấy sheet đầu tiên mà service account có quyền
+# Lấy Google Sheet
 try:
     sheets = client.openall()
     if not sheets:
-        st.error("⚠️ Không tìm thấy Google Sheet nào mà service account có quyền.\n\n➡️ Hãy chia sẻ ít nhất 1 sheet với email trong service account.")
+        st.error("⚠️ Service account chưa có quyền truy cập Google Sheet nào. \
+                 Hãy chia sẻ ít nhất 1 sheet với email trong file credentials.")
         st.stop()
     sheet = sheets[0].sheet1
     st.success(f"✅ Đang ghi vào sheet: **{sheet.title}**")
@@ -57,7 +56,7 @@ except FileNotFoundError:
 st.components.v1.html(
     html + """
     <script>
-        // Nhận kết quả quay từ iframe HTML (JS gửi về)
+        // Lắng nghe kết quả quay từ iframe HTML (JS gửi về)
         window.addEventListener("message", (event) => {
             if (event.data && event.data.type === "SPIN_RESULT") {
                 const prize = event.data.prize;
