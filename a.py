@@ -4,16 +4,17 @@ import math
 import pandas as pd
 import matplotlib.pyplot as plt
 from io import BytesIO
+import time
 
 st.set_page_config(page_title="Vòng Quay May Mắn", page_icon="🎡", layout="centered")
 
-# ===== Khởi tạo session state =====
+# ===== Khởi tạo session =====
 if "prizes" not in st.session_state:
     st.session_state.prizes = []
 if "history" not in st.session_state:
     st.session_state.history = []
 if "rotation" not in st.session_state:
-    st.session_state.rotation = 0  # Góc quay hiện tại (rad)
+    st.session_state.rotation = 0.0  # góc quay hiện tại
 
 st.title("🎡 Vòng Quay May Mắn")
 
@@ -61,7 +62,6 @@ def draw_wheel(prizes, rotation=0):
 
     for i, prize in enumerate(prizes):
         start = i * arc + rotation
-        end = start + arc
         ax.bar(
             x=start + arc / 2,
             height=1,
@@ -79,49 +79,56 @@ def draw_wheel(prizes, rotation=0):
 
 # ===== Hiển thị vòng quay =====
 st.subheader("🌀 Vòng quay")
+placeholder = st.empty()
 fig = draw_wheel(st.session_state.prizes, st.session_state.rotation)
-st.pyplot(fig)
+placeholder.pyplot(fig)
 
-# ===== Quay vòng =====
-if st.session_state.prizes:
-    if st.button("🎯 QUAY"):
-        available = [p for p in st.session_state.prizes if p["quantity"] > 0]
-        if not available:
-            st.warning("Đã hết phần thưởng!")
-        else:
-            # Weighted random
-            weighted = []
-            for p in available:
-                weighted += [p] * p["weight"]
-            prize = random.choice(weighted)
+# ===== Hiệu ứng quay động =====
+if st.session_state.prizes and st.button("🎯 QUAY"):
+    available = [p for p in st.session_state.prizes if p["quantity"] > 0]
+    if not available:
+        st.warning("Đã hết phần thưởng!")
+    else:
+        # Chọn ngẫu nhiên theo trọng số
+        weighted = []
+        for p in available:
+            weighted += [p] * p["weight"]
+        prize = random.choice(weighted)
 
-            # Giảm số lượng
-            for p in st.session_state.prizes:
-                if p["name"] == prize["name"]:
-                    p["quantity"] -= 1
+        # Tính góc quay cần đạt tới
+        idx = st.session_state.prizes.index(prize)
+        total = len(st.session_state.prizes)
+        arc = 2 * math.pi / total
+        random_offset = random.uniform(0.1, 0.9) * arc
+        target_angle = idx * arc + random_offset
+        total_spin = random.randint(5, 8) * 2 * math.pi
+        final_angle = st.session_state.rotation + total_spin - target_angle
 
-            # Lưu lịch sử
-            st.session_state.history.append({
-                "time": pd.Timestamp.now().strftime("%d/%m/%Y %H:%M:%S"),
-                "prize": prize["name"]
-            })
+        # ===== Tạo hiệu ứng quay mượt =====
+        steps = 60
+        for i in range(steps):
+            # Giảm tốc độ dần (ease-out)
+            t = i / steps
+            ease = 1 - (1 - t) ** 3
+            current_angle = st.session_state.rotation + ease * (final_angle - st.session_state.rotation)
+            fig = draw_wheel(st.session_state.prizes, current_angle)
+            placeholder.pyplot(fig)
+            time.sleep(0.03)  # tốc độ animation
 
-            # Cập nhật góc quay (random 5–10 vòng)
-            idx = st.session_state.prizes.index(prize)
-            total = len(st.session_state.prizes)
-            arc = 2 * math.pi / total
-            random_offset = random.uniform(0.1, 0.9) * arc
-            target_angle = idx * arc + random_offset
-            total_spin = random.randint(5, 10) * 2 * math.pi
-            st.session_state.rotation += total_spin - target_angle  # để trỏ vào phần thưởng
+        st.session_state.rotation = final_angle % (2 * math.pi)
 
-            st.success(f"🎉 Chúc mừng! Bạn trúng **{prize['name']}**!")
+        # Giảm số lượng
+        for p in st.session_state.prizes:
+            if p["name"] == prize["name"]:
+                p["quantity"] -= 1
 
-            # Vẽ lại vòng quay sau khi quay
-            fig = draw_wheel(st.session_state.prizes, st.session_state.rotation)
-            st.pyplot(fig)
-else:
-    st.info("Hãy thêm phần thưởng trước khi quay.")
+        # Lưu lịch sử
+        st.session_state.history.append({
+            "time": pd.Timestamp.now().strftime("%d/%m/%Y %H:%M:%S"),
+            "prize": prize["name"]
+        })
+
+        st.success(f"🎉 Chúc mừng! Bạn trúng **{prize['name']}**!")
 
 # ===== Lịch sử quay =====
 st.subheader("📜 Lịch sử quay")
